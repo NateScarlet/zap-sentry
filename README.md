@@ -5,4 +5,10 @@
 
 Record log using zap and sentry.
 
+## Usage
+
+```shell
+go get github.com/NateScarlet/zap-sentry
+```
+
 Package [logging](./pkg/logging/logging.go) is a simple setup that use `zapsentry.Core`.
