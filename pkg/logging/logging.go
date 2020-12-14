@@ -106,11 +106,14 @@ func (h *Hub) Logger(n string) *zap.Logger {
 var backgroundHub = &Hub{sentryHub: sentry.CurrentHub()}
 
 // For returns hub for given context,
-// will use background hub if not set on context.
+// will use background hub if not set on context or context is nil.
 //
 // Use `With` if you are going modify sentry scope,
 // so they don't mixed up between goroutine.
 func For(ctx context.Context) *Hub {
+	if ctx == nil {
+		return backgroundHub
+	}
 	v := ctx.Value(HubContextKey)
 	if v == nil {
 		return backgroundHub
