@@ -3,6 +3,8 @@ package zapsentry
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"runtime"
 	"strconv"
 	"strings"
@@ -93,23 +95,26 @@ func (c *Core) Write(entry zapcore.Entry, fields []zapcore.Field) error {
 	event.Logger = entry.LoggerName
 	event.Level = level(entry.Level)
 	enc := zapcore.NewMapObjectEncoder()
-
-	var fieldErr error
+	var err error
 	for _, i := range append(c.fields, fields...) {
-		if i.Type == zapcore.ErrorType && fieldErr == nil {
-			if err, ok := i.Interface.(error); ok && err != nil {
-				fieldErr = err
-				continue
+		if i.Type == zapcore.ErrorType {
+			if e, ok := i.Interface.(error); ok && e != nil {
+				if err == nil {
+					err = e
+				} else {
+					err = errors.Join(e, err)
+				}
 			}
 		}
 		i.AddTo(enc)
 	}
 	event.Extra = enc.Fields
 	trace := newStackTrace()
-	if fieldErr != nil {
+	if err != nil {
+		event.Message += ": " + err.Error()
 		event.Exception = []sentry.Exception{{
-			Type:       event.Message,
-			Value:      fieldErr.Error(),
+			Type:       fmt.Sprintf("%T", err),
+			Value:      err.Error(),
 			Stacktrace: trace,
 		}}
 	} else if trace != nil {
@@ -119,7 +124,6 @@ func (c *Core) Write(entry zapcore.Entry, fields []zapcore.Field) error {
 			Stacktrace: trace,
 		}}
 	}
-
 	c.Hub.CaptureEvent(event)
 	return nil
 }
