@@ -70,26 +70,10 @@ func ignoreModule(module string) bool {
 	return false
 }
 
-// fix https://github.com/getsentry/sentry-go/issues/180
-func fixSentryIssue180(f *sentry.Frame) {
-	if f.Module == "" {
-		pathend := strings.LastIndex(f.Function, "/")
-		if pathend < 0 {
-			pathend = 0
-		}
-
-		if i := strings.Index(f.Function[pathend:], "."); i != -1 {
-			f.Module = f.Function[:pathend+i]
-			f.Function = strings.TrimPrefix(f.Function, f.Module+".")
-		}
-	}
-}
-
 func newStackTrace() *sentry.Stacktrace {
 	var ret = sentry.NewStacktrace()
 	var frames = make([]sentry.Frame, 0, len(ret.Frames))
 	for _, i := range ret.Frames {
-		fixSentryIssue180(&i)
 		if ignoreModule(i.Module) {
 			continue
 		}
